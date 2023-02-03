@@ -321,6 +321,12 @@ gcode:
     {% else %}
         {% set user = printer['gcode_macro _USER_VARIABLE'] %}
         {% set defaultTB = user.filament.profile.defaultTempBed|float %}
+        {% if printer.configfile.config['zero_overshoot heater_bed'].zero_overshoot|string in ['True','true'] %}
+            {% set defaultOverShoot = 1 %}
+         {% endif %}
+        {action_respond_info("defaultOverShoot for heater_bed = %s;" % defaultOverShoot)}
+        {% set Z_OVER = params.ZERO_OVERSHOOT|default(defaultOverShoot)|int %}
+        {action_respond_info("Z_OVER for heater_bed = %s;" % Z_OVER)}
         {% set BED_TEMP = params.BED_TEMP|default(defaultTB)|float %}
         {% set FAN_SPEED = params.FAN_SPEED|default(0.40)|float %}
         {% set X_MID =  user.park.mid.x|float %}
@@ -336,7 +342,7 @@ gcode:
         SET_FAN_SPEED FAN=Bedfan_Left SPEED={FAN_SPEED}                     ;set Fan speed for bedfans fan
         SET_FAN_SPEED FAN=Bedfan_Right SPEED={FAN_SPEED}                    ;set Fan speed for bedfans fan
         M117 Starting PID calibration.
-        PID_CALIBRATE HEATER=heater_bed TARGET={BED_TEMP}                   ;PID tune the heater_bed
+        PID_CALIBRATE HEATER=heater_bed TARGET={BED_TEMP} ZERO_OVERSHOOT={Z_OVER}     ;PID tune the heater_bed
         M117 Finished PID calibration.
         TURN_OFF_HEATERS                                                    ;Turn off all heaters and reset the chamber temperature for Exhaust fan
         FILTER                                                              ;Toggle Nevermore Filter
@@ -413,6 +419,12 @@ gcode:
     {% else %}
         {% set defaultTN = user.filament.profile.defaultTempNozzle|float %}
         {% set defaultTB = user.filament.profile.defaultTempBed|float %}
+        {% if printer.configfile.config['zero_overshoot extruder'].zero_overshoot |string in ['True','true'] %}
+            {% set defaultOverShoot = 1 %}
+        {% endif %}
+        {action_respond_info("defaultOverShoot for extruder = %s;" % defaultOverShoot)}
+        {% set Z_OVER = params.ZERO_OVERSHOOT|default(defaultOverShoot)|int %}
+        {action_respond_info("Z_OVER for extruder = %s;" % Z_OVER)}
         {% set FAN_SPEED = params.FAN_SPEED|default(0.64)|float %}
         {% set SOAK_MINUTES = params.SOAK_MINUTES|default(12)|float %}
         {% set BED_TEMP = params.BED_TEMP|default(defaultTB)|float %}
@@ -434,7 +446,7 @@ gcode:
         SET_LED LED=sb_leds INDEX=17 RED=.5 GREEN=.5 BLUE=0
         SET_LED LED=sb_leds INDEX=18 RED=.5 GREEN=.5 BLUE=0
         M117 Starting PID calibration.
-        PID_CALIBRATE HEATER=extruder TARGET={NZL_TEMP}                                           ;PID tune the extruder
+        PID_CALIBRATE HEATER=extruder TARGET={NZL_TEMP} ZERO_OVERSHOOT={Z_OVER}                   ;PID tune the extruder
         M117 Finished PID calibration.
         TURN_OFF_HEATERS                                                                          ;Turn off all heaters and reset the chamber temperature for Exhaust fan
         FILTER                                                                                    ;Toggle Nevermore Filter
