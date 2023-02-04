@@ -9,7 +9,7 @@ A Klipper Extension that allows the Voron User to describe a formula that will r
 
 These new `zero_overshoot PID values` will then be saved to your Klipper's `printer.cfg file`, so they can be used during the heating process for the `heater_bed` and `extruder` heaters.
 
-This Klipper extension allows adds a command line parameter called `ZERO_OVERSHOOT` that can be used to turn on this extension or turn off this extension via the command line.
+This Klipper extension adds a command line parameter called `ZERO_OVERSHOOT` that can be used to turn on this extension or turn off this extension via the command line.
 
 If `ZERO_OVERSHOOT` is set to `1` then this Klipper extension will take the Classic PID values generated via the `PID_CALIBRATE` command and recalculate them with the formula the Voron user describes in the config file. Then these new zero_overshoot PID values will be stored in the printer.cfg file.
 
@@ -18,11 +18,11 @@ If `ZERO_OVERSHOOT` is set to `0` then this Klipper extension will **NOT** chang
 Here are the options for Klipper's `PID_CALIBRATE` :
 
 ```BASH
-PID_CALIBRATE HEATER=heater_bed TARGET=110
+PID_CALIBRATE HEATER=heater_bed TARGET=110                      #this will default to the zero_overshoot option from the config file
 PID_CALIBRATE HEATER=heater_bed TARGET=110 ZERO_OVERSHOOT=0
 PID_CALIBRATE HEATER=heater_bed TARGET=110 ZERO_OVERSHOOT=1
 
-PID_CALIBRATE HEATER=extruder TARGET=240
+PID_CALIBRATE HEATER=extruder TARGET=240                      #this will default to the zero_overshoot option from the config file
 PID_CALIBRATE HEATER=extruder TARGET=240 ZERO_OVERSHOOT=0
 PID_CALIBRATE HEATER=extruder TARGET=240 ZERO_OVERSHOOT=1
 
@@ -73,7 +73,7 @@ Kd_multiplier:
 # The reciprocal is simply: 1/number. To get the reciprocal of a number, we divide 1 by the number. Example: the reciprocal of # 2 is ½
 #
 # So in the example below 3.3333333333 is really 1.0 divide by 3.0 or 1./3.
-# Since the number will only be calculated to the first 3 significant digits only 4 decimal places are used.
+# The number will be calculated to the first 6 significant digits.
 #
 # NOTE2: for the zero_overshoot calculated values to be done automatically, you must have the following in you printer.cfg file:
 # (they can be commented out and located at bottom of the printer.cfg file in the
@@ -106,13 +106,13 @@ All you will see is a message in your klippy.log file stating the following so t
 
 ```
 zero_overshoot ::INFO:: [zero_overshoot heater_bed]: zero_overshoot = True
-zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Kp_multiplier = 0.3333333333333333
-zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Ki_multiplier = 0.3333333333333333
-zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Kd_multiplier = 0.88
+zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Kp_multiplier = 0.3333333333
+zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Ki_multiplier = 0.3333333333
+zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Kd_multiplier = 0.8800000000
 zero_overshoot ::INFO:: [zero_overshoot extruder]: zero_overshoot = True
-zero_overshoot ::INFO:: [zero_overshoot extruder]: Kp_multiplier = 0.3333333333333333
-zero_overshoot ::INFO:: [zero_overshoot extruder]: Ki_multiplier = 0.3333333333333333
-zero_overshoot ::INFO:: [zero_overshoot extruder]: Kd_multiplier = 0.88
+zero_overshoot ::INFO:: [zero_overshoot extruder]: Kp_multiplier = 3.3333333333
+zero_overshoot ::INFO:: [zero_overshoot extruder]: Ki_multiplier = 1.0000000000
+zero_overshoot ::INFO:: [zero_overshoot extruder]: Kd_multiplier = 2.6666666667
 ```
 
 Basically, this extension will document the settings in the klippy.log file.
@@ -201,7 +201,7 @@ Here are the contents of `ZERO_OVERSHOOT.cfg` file:
 # The reciprocal is simply: 1/number. To get the reciprocal of a number, we divide 1 by the number. Example: the reciprocal of 2 is ½
 #
 # So in the example below 3.3333333333 is really 1.0 divide by 3.0
-# Since the number will only be calculated to the first 3 significant digits only 4 decimal places are used.
+# The number will be calculated to the first 6 significant digits but I include 10 significant digits.
 #
 # NOTE2: for the zero_overshoot calculated values to be done automatically, you must have the following in you printer.cfg file:
 # (they can be commented out and located at bottom of the printer.cfg file in the
@@ -234,17 +234,24 @@ Here are the contents of `ZERO_OVERSHOOT.cfg` file:
 # With this extension installed you will no longer have to redo this calculation by hand and manually
 # replace the pid_Kp, pid_Ki, and pid_Kp values.
 
+#
+# My heater for my bed is a Kenovo (600W, 24V, USA) heater from the LDO 300 Kit
+#
 [zero_overshoot heater_bed]
 zero_overshoot: True
 Kp_multiplier: 3.3333333333
 Ki_multiplier: 3.3333333333
-Kd_multiplier: 0.8800
-
+Kd_multiplier: 0.8800000000
+#
+# My hotend is an E3D Voron Revo which has an E3D 40W (24V heater, USA) heater
+#
 [zero_overshoot extruder]
 zero_overshoot: True
 Kp_multiplier: 3.3333333333
-Ki_multiplier: 3.3333333333
-Kd_multiplier: 0.8800
+Ki_multiplier: 1.0000000000
+Kd_multiplier: 2.6666666667
+
+
 ```
 >:point_up: NOTE:
 > You can have different equations for the different heaters.  The above example uses the same formula, but this extension allows 
@@ -258,8 +265,8 @@ Now restart the Klipper service by going to the upper right-hand side corner of 
 >values will not be saved to the `printer.cfg` file and the benefit of this extension will be lost.  If you delete the
 >`*# <---------------------- SAVE_CONFIG ----------------------> ` section from your `printer.cfg` file then the benefit of this
 >extension will be lost.  But no worries, you will just have to rerun the `PID_CALIBRATE` command again and do a `SAVE_CONFIG`
->after the `PID_CALIBARTE` command finishes to regain the benefit of this extension. This Klipper extension is a increases
->your quality of life experience.
+>after the `PID_CALIBARTE` command finishes to regain the benefit of this extension. This Klipper extension adds to your
+>`quality of life` experience.
 
 How often do you do a `PID_CALIBRATE` command? Answer: Not very often.  I tend to forget that I want to change my classic PID
 values so that I can dampen the overshoot of the PID control.  So I end up doing a `PID_CALIBRATE` command to achieve my

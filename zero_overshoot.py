@@ -127,9 +127,9 @@ class ZeroOvershoots(PIDCalibrate):
         gcmd.respond_info("Using Zero_Overshoot Calculated values...")
         zheater = self.heaters[heater_name]
         self.Kp_multiplier, self.Ki_multiplier, self.Kd_multiplier = zheater.get_K_multiplier_values()[1:]
-        myKp = round((Kp * self.Kp_multiplier),3)
-        myKi = round((Ki * self.Ki_multiplier),3)
-        myKd = round((Kd * self.Kd_multiplier),3)
+        myKp = round((Kp * self.Kp_multiplier),6)
+        myKi = round((Ki * self.Ki_multiplier),6)
+        myKd = round((Kd * self.Kd_multiplier),6)
         return myKp, myKi, myKd
 
 def load_config(config):
