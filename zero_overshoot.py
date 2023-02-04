@@ -4,20 +4,16 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
-import configparser
 from .pid_calibrate import (
       PIDCalibrate,
       ControlAutoTune
 )
 
-ONE_THIRD=1./3.
-PERCENT88 =88./100.
-
 ######################################################################
 # Heater lookup and define new options for PID control
 ######################################################################
 
-class ZeroOvershootHeater:
+class ZeroOvershootExistingHeater:
     def __init__(self, config):
         if len(config.get_name().split()) > 2:
             raise config.error(
@@ -26,13 +22,10 @@ class ZeroOvershootHeater:
         self.full_section = config.get_name()
         self.heater_name = self.full_section.split()[1]
         self.section = self.full_section.split()[0]
-        if not self.heater_name in ['extruder','heater_bed']:
-            raise configparser.Error(
-                "Invalid name of '%s' for %s section" % (self.heater_name, self.section))
-        self.zero_overshoot = config.getboolean('zero_overshoot', False)
-        self.Kp_multiplier = config.getfloat('Kp_multiplier', ONE_THIRD)
-        self.Ki_multiplier = config.getfloat('Ki_multiplier', ONE_THIRD)
-        self.Kd_multiplier = config.getfloat('Kd_multiplier', PERCENT88)
+        self.zero_overshoot = config.getboolean('zero_overshoot', True)
+        self.Kp_multiplier = config.getfloat('Kp_multiplier', 1.)
+        self.Ki_multiplier = config.getfloat('Ki_multiplier', 1.)
+        self.Kd_multiplier = config.getfloat('Kd_multiplier', 1.)
         # let Log file know this extension is active
         logging.info("zero_overshoot ::INFO:: [zero_overshoot %s]: zero_overshoot = %s" % (self.heater_name, self.zero_overshoot))
         logging.info("zero_overshoot ::INFO:: [zero_overshoot %s]: Kp_multiplier = %s" % (self.heater_name, self.Kp_multiplier))
@@ -44,7 +37,7 @@ class ZeroOvershootHeater:
 ######################################################################
 # ZERO_OVERSHOOT Klipper extension inherits from pid_calibrate.PIDCalibrate
 ######################################################################
-class ZeroOvershoots(PIDCalibrate):
+class ZeroOvershootPIDCalibrate(PIDCalibrate):
     def __init__(self, config):
         self.printer = printer = config.get_printer()
         self.heaters = {}
@@ -53,6 +46,9 @@ class ZeroOvershoots(PIDCalibrate):
         gcode.register_command('PID_CALIBRATE', None)
         PIDCalibrate.__init__(self, config)
         self.printer.register_event_handler("klippy:ready", self.handle_ready)
+
+        gcode.register_command('HEATERS_STATUS', self.cmd_HEATERS_STATUS,
+                               desc=self.cmd_HEATERS_STATUS_help)
 
     def handle_ready(self):
         # This is the hacky bit:
@@ -65,12 +61,12 @@ class ZeroOvershoots(PIDCalibrate):
         self.printer.objects['pid_calibrate'] = self
         del pid_calibrate_obj
 
-    def setup_heater(self, config):
+    def add_existing_heater(self, config):
         heater_name = config.get_name().split()[-1]
         if not heater_name in ['extruder','heater_bed']:
             raise config.error("Invalid Heater name: %s" % (heater_name,))
-        self.heaters[heater_name] = heater = ZeroOvershootHeater(config)
-        return heater
+        self.heaters[heater_name] = existing_heater = ZeroOvershootExistingHeater(config)
+        return existing_heater
     def cmd_PID_CALIBRATE(self, gcmd):
         heater_name = gcmd.get('HEATER')
         pheaters = self.printer.lookup_object('heaters')
@@ -127,14 +123,21 @@ class ZeroOvershoots(PIDCalibrate):
         gcmd.respond_info("Using Zero_Overshoot Calculated values...")
         zheater = self.heaters[heater_name]
         self.Kp_multiplier, self.Ki_multiplier, self.Kd_multiplier = zheater.get_K_multiplier_values()[1:]
-        myKp = round((Kp * self.Kp_multiplier),6)
-        myKi = round((Ki * self.Ki_multiplier),6)
-        myKd = round((Kd * self.Kd_multiplier),6)
+        myKp = round((Kp * self.Kp_multiplier),3)
+        myKi = round((Ki * self.Ki_multiplier),3)
+        myKd = round((Kd * self.Kd_multiplier),3)
         return myKp, myKi, myKd
 
+    cmd_HEATERS_STATUS_help = "Get all available heaters and status"
+    def cmd_HEATERS_STATUS(self, gcmd):
+        pheaters = self.printer.lookup_object('heaters')
+        time = self.printer.lookup_object('toolhead').get_last_move_time()
+        pheater_status = pheaters.get_status(time)
+        gcmd.respond_info("Printer Heaters status %s" % (pheater_status))
+
 def load_config(config):
-    return ZeroOvershoots(config)
+    return ZeroOvershootPIDCalibrate(config)
 
 def load_config_prefix(config):
     zheaters = config.get_printer().load_object(config, 'zero_overshoot')
-    return zheaters.setup_heater(config)
+    return zheaters.add_existing_heater(config)

@@ -21,10 +21,16 @@ Here are the options for Klipper's `PID_CALIBRATE` :
 PID_CALIBRATE HEATER=heater_bed TARGET=110                      #this will default to the zero_overshoot option from the config file
 PID_CALIBRATE HEATER=heater_bed TARGET=110 ZERO_OVERSHOOT=0
 PID_CALIBRATE HEATER=heater_bed TARGET=110 ZERO_OVERSHOOT=1
+PID_CALIBRATE HEATER=heater_bed TARGET=110 WRITE_FILE=0 ZERO_OVERSHOOT=1
+PID_CALIBRATE HEATER=heater_bed TARGET=110 WRITE_FILE=1 ZERO_OVERSHOOT=1
 
-PID_CALIBRATE HEATER=extruder TARGET=240                      #this will default to the zero_overshoot option from the config file
+PID_CALIBRATE HEATER=extruder TARGET=240                        #this will default to the zero_overshoot option from the config file
 PID_CALIBRATE HEATER=extruder TARGET=240 ZERO_OVERSHOOT=0
 PID_CALIBRATE HEATER=extruder TARGET=240 ZERO_OVERSHOOT=1
+PID_CALIBRATE HEATER=extruder TARGET=240 WRITE_FILE=0 ZERO_OVERSHOOT=1
+PID_CALIBRATE HEATER=extruder TARGET=240 WRITE_FILE=1 ZERO_OVERSHOOT=1
+
+If the WRITE_FILE parameter is enabled, then the file `/tmp/heattest.txt` will be created with a log of all temperature samples taken during the test.
 
 ```
 ---
@@ -39,29 +45,29 @@ To enable the module, add the following to your `printer.cfg` file:
 ```INI
 [zero_overshoot heater_bed]
 zero_overshoot:
-#   Globally enable the the recalculation of the Classic PID Kp, Ki, and Kd values. Default is 'False'.
+#   Globally enable the the recalculation of the Classic PID Kp, Ki, and Kd values. Default is 'True'.
 #   Setting this to 'True' will enable the formula and the Kp, Ki and Kd values will be changed before they
 #   are saved back to the printer.cfg file during the SAVE_CONFIG command. This extension only works with
 #   the help of Klipper's PID_CALIBRATE command.
 Kp_multiplier:
-#    default value is 3.3333333333
+#    default value is 1.0000000000
 Ki_multiplier:
-#    default value is 3.3333333333
+#    default value is 1.0000000000
 Kd_multiplier:
-#   default value is 0.8800
+#   default value is 1.0000000000
 #
 [zero_overshoot extruder]
 zero_overshoot:
-#   Globally enable the the recalculation of the Classic PID Kp, Ki, and Kd values. Default is 'False'.
+#   Globally enable the the recalculation of the Classic PID Kp, Ki, and Kd values. Default is 'True'.
 #   Setting this to 'True' will enable the formula and the Kp, Ki and Kd values will be changed before they
 #   are saved back to the printer.cfg file during the SAVE_CONFIG command. This extension only works with
 #   the help of Klipper's PID_CALIBRATE command.
 Kp_multiplier:
-#    default value is 3.3333333333
+#    default value is 1.0000000000
 Ki_multiplier:
-#   default value is 3.3333333333
+#   default value is 1.0000000000
 Kd_multiplier:
-#   default value is 0.8800
+#   default value is 1.0000000000
 #
 
 # The following formulas will be used to recalculate the pid_Kp, pid_Ki, and pid_Kd:
@@ -72,8 +78,9 @@ Kd_multiplier:
 # NOTE: if you need to divide, remember that 1/x = 1 * reciprocal of the number;
 # The reciprocal is simply: 1/number. To get the reciprocal of a number, we divide 1 by the number. Example: the reciprocal of # 2 is ½
 #
-# So in the example below 3.3333333333 is really 1.0 divide by 3.0 or 1./3.
-# The number will be calculated to the first 6 significant digits.
+# So for example 0.3333333333 is really 1.0 divide by 3.0 or 1./3.
+# The number will be calculated to the first 3 significant digits because that is all the significant digits that Klipper will
+# store for SAVE_CONFIG command.
 #
 # NOTE2: for the zero_overshoot calculated values to be done automatically, you must have the following in you printer.cfg file:
 # (they can be commented out and located at bottom of the printer.cfg file in the
@@ -95,14 +102,15 @@ Kd_multiplier:
 # If the above pid_Kp, pid_Ki, and pid_Kd values are located in a seperate `include` file, the software will not
 # know where to look to find the classic PID values for Kp, Ki and Kd.
 ```
-<img src=".\images\code1.svg" width="600">
 
->:point_up: NOTE: The default for the option `zero_overshoot` is `False`.  So if you forget to assign `True` or `False` for the option `zero_overshoot` then the extension will load `False` automatically.  But this only applies if you have a `[zero_overshoot heater_bed]` section and/or `[zero_overshoot extruder]` section defined in your printer.cfg file.
+>:point_up: NOTE: The default for the option `zero_overshoot` is `True`.  So if you forget to assign `True` or `False` for the option `zero_overshoot` then the extension will load `True` automatically.  But this only applies if you have a `[zero_overshoot heater_bed]` section and/or `[zero_overshoot extruder]` section defined in your printer.cfg file.
+
+I have set the defaults to the option as such so that if you do not know what you want this extension will default to using the `Classic PID values` that Klipper generates.
 
 The module also augments the `PID_CALIBRATE` command with an extra parameter - `ZERO_OVERSHOOT` - which can be used to
 control whether the command performs the zero_over shoot recalculation independently of the`zero_overshoot` setting in the configuration section `[zero_overshoot heater_bed]` or `[zero_overshoot extruder]`.
 
-All you will see is a message in your klippy.log file stating the following so that if you need help, the Voron design team will need to know this extension is installed:
+All you will see is a message in your klippy.log file stating the following so that if you need help, the Voron design team will need to know this extension is installed and its current settings:
 
 ```
 zero_overshoot ::INFO:: [zero_overshoot heater_bed]: zero_overshoot = True
@@ -110,13 +118,41 @@ zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Kp_multiplier = 0.333333333
 zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Ki_multiplier = 0.3333333333
 zero_overshoot ::INFO:: [zero_overshoot heater_bed]: Kd_multiplier = 0.8800000000
 zero_overshoot ::INFO:: [zero_overshoot extruder]: zero_overshoot = True
-zero_overshoot ::INFO:: [zero_overshoot extruder]: Kp_multiplier = 3.3333333333
+zero_overshoot ::INFO:: [zero_overshoot extruder]: Kp_multiplier = 0.3333333333
 zero_overshoot ::INFO:: [zero_overshoot extruder]: Ki_multiplier = 1.0000000000
 zero_overshoot ::INFO:: [zero_overshoot extruder]: Kd_multiplier = 2.6666666667
 ```
-
 Basically, this extension will document the settings in the klippy.log file.
 
+The above are taken from my klippy.log file.  So these are the setting I am using presently.
+
+I own an LDO 300 Kit Kenovo pad with the following characteristics:
+
+1. Kenovo 280x280mm (600W) & Thermal Fuse (125c) URL: https://keenovo.store/products/keenovo-square-silicone-heater-3d-printer-build-plate-heatbed-heating-pad?variant=12592089268279
+2. sensor_type: keenovo ##my user defined type instead of `Generic 3950`
+3. My user defined `keenovo` thermistor definition is as follows:
+```INI
+[thermistor keenovo]
+# URL: https://github.com/RealDeuce/Voron-MKS-Monster8/blob/main/keenovo.cfg
+# https://www.keenovo.com/NTC-Thermistor-R-T-Table.pdf
+temperature1:	25
+resistance1:	100000
+temperature2:	70
+resistance2:	17550
+temperature3:	110
+resistance3:	5070
+```
+
+I am still trying to tweak my E3D Revo Voron heater settings.
+
+I own an E3D Revo Voron with the following characteristics:
+
+1. E3D Voron Revo hot end (40W, 24V heater, USA) URL: https://e3d-online.com/products/revo-voron
+2. sensor_type: ATC Semitec 104NT-4-R025H42G
+3. `ATC Semitec 104NT-4-R025H42G` is the Klipper definition
+
+>:bulb: **INFO:** Please keep in mind there are many factors that effect the PID tuning process. Like your thermistor definition and
+>the option `smooth_time:` in your heater definition.
 ---
 
 ### **Installation:**
@@ -190,8 +226,8 @@ Here are the contents of `ZERO_OVERSHOOT.cfg` file:
 #  When the option parameter 'zero_overshoot' is set to False then the printer will NOT automatically
 #  adjust the pid_Kp, pid_Ki,and pid_Kd values and Classic PID control will be used.
 #
-# Kp_multiplier default value is 3.3333333333, Ki_multiplier default value is 3.3333333333 and Kd_multiplier
-# default value is 0.8800
+# Kp_multiplier default value is 1.0000000000, Ki_multiplier default value is 1.0000000000 and Kd_multiplier
+# default value is 1.0000000000
 #
 # The following formulas will be used:
 # Kp = Kp_classic * Kp_multiplier
@@ -200,8 +236,9 @@ Here are the contents of `ZERO_OVERSHOOT.cfg` file:
 # NOTE: if you need to divide, remember that 1/x = 1 * reciprocal of the number;
 # The reciprocal is simply: 1/number. To get the reciprocal of a number, we divide 1 by the number. Example: the reciprocal of 2 is ½
 #
-# So in the example below 3.3333333333 is really 1.0 divide by 3.0
-# The number will be calculated to the first 6 significant digits but I include 10 significant digits.
+# So for example 0.3333333333 is really 1.0 divide by 3.0 or 1./3.
+# The number will be calculated to the first 3 significant digits because that is all the significant digits that Klipper will
+# store for SAVE_CONFIG command.
 #
 # NOTE2: for the zero_overshoot calculated values to be done automatically, you must have the following in you printer.cfg file:
 # (they can be commented out and located at bottom of the printer.cfg file in the
@@ -239,22 +276,22 @@ Here are the contents of `ZERO_OVERSHOOT.cfg` file:
 #
 [zero_overshoot heater_bed]
 zero_overshoot: True
-Kp_multiplier: 3.3333333333
-Ki_multiplier: 3.3333333333
-Kd_multiplier: 0.8800000000
+Kp_multiplier: 1.0000000000
+Ki_multiplier: 1.0000000000
+Kd_multiplier: 1.0000000000
 #
 # My hotend is an E3D Voron Revo which has an E3D 40W (24V heater, USA) heater
 #
 [zero_overshoot extruder]
 zero_overshoot: True
-Kp_multiplier: 3.3333333333
+Kp_multiplier: 1.0000000000
 Ki_multiplier: 1.0000000000
-Kd_multiplier: 2.6666666667
+Kd_multiplier: 1.0000000000
 
 
 ```
 >:point_up: NOTE:
-> You can have different equations for the different heaters.  The above example uses the same formula, but this extension allows 
+> You can have different equations for the different heaters.  The above example uses the same formula, but this extension allows
 >you to create two separate formulas if you want.
 
 Now restart the Klipper service by going to the upper right-hand side corner of Mainsail UI and click on the Power Button symbol.  Take your mouse and click on the curved arrow next to the word `Klipper` to restart the Klipper service.
@@ -274,14 +311,21 @@ desired response.  With this extension, I will never have to worry about manuall
 
 BTW, I have macros that I use to do BED PID Tuning and Nozzle PID Turning that automatically do the `SAVE_CONFIG` command.
 
-Here is my BED PID Tune macro:
+Here is my BED PID Tune macro (you can find the _general_Debug macro in this GitHub Repo):
+
+URL to my GitHub Repo for all the other external macros (G32, M117, CURRENT_NORMAL, PARK_UpperRight, _COOL_WAIT, STATUS_READY, TURN_OFF_HEATERS, _USER_VARIABLE, M141, and FILTER): https://github.com/GadgetAngel/Klipperbackup_Voron2.4r2_LDO300kit
+
 ```python
 #.................................................................................................................
-# BED_PID - Optional parameters: BED_TEMP{float_value}, FAN_SPEED{0-1}, ENCLOSURE_TEMP{float_value}
+# BED_PID - Optional parameters: BED_TEMP{float_value}, FAN_SPEED{0-1},
+#                                ENCLOSURE_TEMP{float_value}, ZERO_OVERSHOOT{0,1},
+#                                WRITE_FILE{0,1}
 #
 #   / Usage:
 #           BED_PID,
 #           BED_PID BED_TEMP=110 FAN_SPEED=60 ENCLOSURE_TEMP=40
+#           BED_PID BED_TEMP=110 FAN_SPEED=60 ENCLOSURE_TEMP=40 WRITE_FILE=1
+#           BED_PID BED_TEMP=110 FAN_SPEED=60 ENCLOSURE_TEMP=40 WRITE_FILE=1 ZERO_OVERSHOOT=1
 #
 #   It performs bed PID tune. If no parameters are specified, BED_TEMP will be [defaultTempBed]
 #
@@ -333,7 +377,10 @@ gcode:
          {% endif %}
         {action_respond_info("defaultOverShoot for heater_bed = %s;" % defaultOverShoot)}
         {% set Z_OVER = params.ZERO_OVERSHOOT|default(defaultOverShoot)|int %}
+        {% set WRITE_FILE = params.WRITE_FILE|default(0)|int %}
         {action_respond_info("Z_OVER for heater_bed = %s;" % Z_OVER)}
+        # if WRITE_FILE = 1 then file is saved to `/tmp/heattest.txt` on raspberry pi
+        {action_respond_info("WRITE_FILE for heater_bed = %s;" % WRITE_FILE)}
         {% set BED_TEMP = params.BED_TEMP|default(defaultTB)|float %}
         {% set FAN_SPEED = params.FAN_SPEED|default(0.40)|float %}
         {% set X_MID =  user.park.mid.x|float %}
@@ -349,7 +396,7 @@ gcode:
         SET_FAN_SPEED FAN=Bedfan_Left SPEED={FAN_SPEED}                     ;set Fan speed for bedfans fan
         SET_FAN_SPEED FAN=Bedfan_Right SPEED={FAN_SPEED}                    ;set Fan speed for bedfans fan
         M117 Starting PID calibration.
-        PID_CALIBRATE HEATER=heater_bed TARGET={BED_TEMP} ZERO_OVERSHOOT={Z_OVER}     ;PID tune the heater_bed
+        PID_CALIBRATE HEATER=heater_bed TARGET={BED_TEMP} ZERO_OVERSHOOT={Z_OVER} WRITE_FILE={WRITE_FILE}  ;PID tune the heater_bed
         M117 Finished PID calibration.
         TURN_OFF_HEATERS                                                    ;Turn off all heaters and reset the chamber temperature for Exhaust fan
         FILTER                                                              ;Toggle Nevermore Filter
@@ -363,15 +410,24 @@ gcode:
    _general_Debug msg="_BED_PID - exiting"
 ```
 
-Here is my Nozzle PID Tune macro:
+Here is my Nozzle PID Tune macro(you can find the _general_Debug macro in this GitHub Repo):
+
+URL to my GitHub Repo for all the other external macros (STATUS_HOMING, STATUS_BUSY, STATUS_READY, _COOL_WAIT, _HEAT_WAIT,
+PARK_UpperRight, M117, TURN_OFF_HEATERS, G32, M190, M106, _USER_VARIABLE, M141, FILTER): https://github.com/GadgetAngel/Klipperbackup_Voron2.4r2_LDO300kit
+
 ```python
 #.................................................................................................................
-# NZL_PID - Optional parameters: BED_TEMP{float_value}, NZL_TEMP{float_value}, FAN_SPEED{float_value between 0-1}, SOAK_MINUTES{float_value}, ENCLOSURE_TEMP{float_value}
+# NZL_PID - Optional parameters: BED_TEMP{float_value}, NZL_TEMP{float_value},
+#                                FAN_SPEED{float_value between 0-1}, SOAK_MINUTES{float_value},
+#                                ENCLOSURE_TEMP{float_value}, ZERO_OVERSHOOT{0,1},
+#                                WRITE_FILE{0,1}
 #
 #   / Usage:
 #           NZL_PID,
 #           NZL_PID NZL_TEMP=240 BED_TEMP=110
 #           NZL_PID NZL_TEMP=240 BED_TEMP=110.0 FAN_SPEED=0.64 SOAK_MINUTES=12.5 ENCLOSURE_TEMP=40.0
+#           NZL_PID NZL_TEMP=240 BED_TEMP=110.0 FAN_SPEED=0.64 SOAK_MINUTES=12.5 ENCLOSURE_TEMP=40.0 WRITE_FILE=1
+#           NZL_PID NZL_TEMP=240 BED_TEMP=110.0 FAN_SPEED=0.64 SOAK_MINUTES=12.5 ENCLOSURE_TEMP=40.0 WRITE_FILE=1 ZERO_OVERSHOOT=1
 #
 #   It performs bed heat soak and then nozzle PID tune. If no parameters are specified, BED_TEMP will be
 #   [defaultTempBed], and NZL_TEMP will be [defaultTempNozzle].
@@ -440,6 +496,9 @@ gcode:
         {% set Y_MID = printer.configfile.config.stepper_y.position_max|float / 2.0 %}
         {% set defaultENCLOSURE = user.filament.profile.defaultEnclosure|float %}
         {% set ENCLOSURE_TEMP = params.ENCLOSURE_TEMP|default(defaultENCLOSURE)|float %}
+        {% set WRITE_FILE = params.WRITE_FILE|default(0)|int %}
+        # if WRITE_FILE = 1 then file is saved to `/tmp/heattest.txt` on raspberry pi
+        {action_respond_info("WRITE_FILE for heater_bed = %s;" % WRITE_FILE)}
         G90                                                                                       ;Absolute Positioning
         M117 Performing initial homing.
         G32                                                                                       ;Clears bed-mesh and performs G28, ATTACH_PROBE, QGL, DOCK_PROBE
@@ -453,7 +512,7 @@ gcode:
         SET_LED LED=sb_leds INDEX=17 RED=.5 GREEN=.5 BLUE=0
         SET_LED LED=sb_leds INDEX=18 RED=.5 GREEN=.5 BLUE=0
         M117 Starting PID calibration.
-        PID_CALIBRATE HEATER=extruder TARGET={NZL_TEMP} ZERO_OVERSHOOT={Z_OVER}                   ;PID tune the extruder
+        PID_CALIBRATE HEATER=extruder TARGET={NZL_TEMP} ZERO_OVERSHOOT={Z_OVER} WRITE_FILE={WRITE_FILE}   ;PID tune the extruder
         M117 Finished PID calibration.
         TURN_OFF_HEATERS                                                                          ;Turn off all heaters and reset the chamber temperature for Exhaust fan
         FILTER                                                                                    ;Toggle Nevermore Filter
@@ -468,9 +527,9 @@ gcode:
     {% endif %}
     _general_Debug msg="NZL_PID - exiting"
 ```
-
 ---
 
+```
 ### Moonraker Update Manager:
 
 It's possible to keep this extension up to date with the Moonraker's update manager by adding this configuration block to the `moonraker.conf` of your printer:
